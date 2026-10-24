@@ -1,7 +1,7 @@
 package:
   name: baseless-baselayout
   version: "20261024"
-  epoch: 0
+  epoch: 1
   description: Minimal filesystem layout and identities for Baseless
   copyright:
     - license: Apache-2.0
@@ -44,7 +44,6 @@ pipeline:
         "${{targets.destdir}}"/var/log \
         "${{targets.destdir}}"/var/tmp
 
-      chmod 0700 "${{targets.destdir}}"/root
       chmod 1777 "${{targets.destdir}}"/tmp "${{targets.destdir}}"/var/tmp
 
       ln -s usr/bin "${{targets.destdir}}"/bin
@@ -56,9 +55,9 @@ pipeline:
       ln -s ../run "${{targets.destdir}}"/var/run
 
       cat > "${{targets.destdir}}"/etc/passwd <<'EOF'
-      root:x:0:0:root:/root:/sbin/nologin
-      nonroot:x:65532:65532:Baseless nonroot:/home/nonroot:/sbin/nologin
-      nobody:x:65534:65534:nobody:/var/empty:/sbin/nologin
+      root:!:0:0:root:/root:/sbin/nologin
+      nonroot:!:65532:65532:Baseless nonroot:/home/nonroot:/sbin/nologin
+      nobody:!:65534:65534:nobody:/var/empty:/sbin/nologin
       EOF
 
       cat > "${{targets.destdir}}"/etc/group <<'EOF'
@@ -67,17 +66,9 @@ pipeline:
       nobody:x:65534:
       EOF
 
-      cat > "${{targets.destdir}}"/etc/shadow <<'EOF'
-      root:*:0:0:99999:7:::
-      nonroot:!:0:0:99999:7:::
-      nobody:!:0:0:99999:7:::
-      EOF
-      chmod 000 "${{targets.destdir}}"/etc/shadow
-
       cat > "${{targets.destdir}}"/etc/nsswitch.conf <<'EOF'
       passwd: files
       group: files
-      shadow: files
       hosts: files dns
       networks: files dns
       EOF
