@@ -41,6 +41,7 @@ pipeline:
         "${{targets.destdir}}"/usr/lib \
         "${{targets.destdir}}"/usr/local/bin \
         "${{targets.destdir}}"/var/empty \
+        "${{targets.destdir}}"/var/lib \
         "${{targets.destdir}}"/var/log \
         "${{targets.destdir}}"/var/tmp
 
@@ -93,4 +94,3 @@ test:
 
 update:
   enabled: false
-
