@@ -75,7 +75,7 @@ pipeline:
 
   - name: Build and install glibc
     runs: |
-      make -C build -j"$(nproc)"
+      make -C build -j"$(nproc)" lib
       make -C build install DESTDIR="${{targets.destdir}}"
 
   - name: Remove build-only documentation
@@ -166,4 +166,3 @@ test:
 
 update:
   enabled: false
-
