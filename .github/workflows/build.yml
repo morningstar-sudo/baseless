@@ -176,6 +176,8 @@ jobs:
 
       - name: Promote exact scanned manifests
         run: |
+          export COSIGN_REPOSITORY="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless"
+
           for variant in static glibc debug; do
             source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
             release_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless-${variant}"

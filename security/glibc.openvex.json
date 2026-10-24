@@ -1,7 +1,7 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/morningstar-sudo/base-distroless/security/glibc-2.44-045c5147",
-  "author": "https://github.com/morningstar-sudo/base-distroless",
+  "@id": "https://github.com/morningstar-sudo/baseless/security/glibc-2.44-045c5147",
+  "author": "https://github.com/morningstar-sudo/baseless",
   "timestamp": "2026-10-24T00:00:00Z",
   "version": 1,
   "statements": [
@@ -108,4 +108,3 @@
     }
   ]
 }
-

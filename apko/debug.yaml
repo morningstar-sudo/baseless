@@ -31,6 +31,5 @@ archs:
 annotations:
   org.opencontainers.image.title: Baseless debug
   org.opencontainers.image.description: Baseless diagnostic image with a shell and pinned tools
-  org.opencontainers.image.source: https://github.com/morningstar-sudo/base-distroless
+  org.opencontainers.image.source: https://github.com/morningstar-sudo/baseless
   org.opencontainers.image.vendor: morningstar-sudo
-

@@ -79,8 +79,8 @@ pipeline:
       NAME="Baseless"
       PRETTY_NAME="Baseless"
       VERSION_ID="2026.10"
-      HOME_URL="https://github.com/morningstar-sudo/base-distroless"
-      BUG_REPORT_URL="https://github.com/morningstar-sudo/base-distroless/issues"
+      HOME_URL="https://github.com/morningstar-sudo/baseless"
+      BUG_REPORT_URL="https://github.com/morningstar-sudo/baseless/issues"
       EOF
 
       ln -s /proc/mounts "${{targets.destdir}}"/etc/mtab

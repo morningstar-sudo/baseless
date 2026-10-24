@@ -30,7 +30,16 @@ The private key must be Base64-encoded and stored in the GitHub Environment name
 BASELESS_MELANGE_RSA_KEY_B64
 ```
 
-The workflow derives the public key from that secret and compares it byte-for-byte with the committed public key before building packages. OCI manifests are additionally signed with keyless Cosign after all scan gates pass.
+The workflow derives the public key from that secret and compares it byte-for-byte with the committed public key before building packages. This committed key verifies APK package signatures; it is not used for OCI image signatures. OCI manifests are signed separately with keyless Cosign after all scan gates pass.
+
+Image signatures are stored as legacy Cosign tags in `ghcr.io/morningstar-sudo/baseless`, separate from the `baseless-static`, `baseless-glibc`, and `baseless-debug` image packages. To verify an image, point Cosign at that signature repository:
+
+```sh
+COSIGN_REPOSITORY=ghcr.io/morningstar-sudo/baseless cosign verify \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  --certificate-identity=https://github.com/morningstar-sudo/baseless/.github/workflows/build.yml@refs/heads/main \
+  ghcr.io/morningstar-sudo/baseless-glibc:latest
+```
 
 ## Local build
 
