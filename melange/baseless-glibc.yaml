@@ -1,7 +1,7 @@
 package:
   name: baseless-glibc
   version: "2.44"
-  epoch: 3
+  epoch: 4
   description: GNU C library runtime for Baseless
   copyright:
     - license: LGPL-2.1-or-later
@@ -45,8 +45,12 @@ pipeline:
   - name: Configure glibc
     runs: |
       if [ "${{build.arch}}" = "aarch64" ]; then
-        # This IFUNC helper is only used by glibc's test support library.
-        sed -i '/support-address-diff/d' sysdeps/aarch64/Makefile
+        # GCC's Alpine target does not support raw IFUNC attributes in these
+        # test-only helpers; use their generic implementations instead.
+        cp sysdeps/generic/support-address-diff.c \
+          sysdeps/aarch64/support-address-diff.c
+        cp sysdeps/generic/support-use-after-free.c \
+          sysdeps/aarch64/support-use-after-free.c
       fi
       mkdir build
       cat > build/configparms <<'EOF'
