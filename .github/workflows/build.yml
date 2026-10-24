@@ -27,27 +27,32 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/baseless
 
 jobs:
-  build-scan-publish:
+  build-packages:
     runs-on: ubuntu-24.04
     environment: keys
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-qemu-action@v3
+        if: matrix.arch == 'aarch64'
         with:
           platforms: arm64
 
-      - name: Restore Melange and apko caches
+      - name: Restore Melange cache
         uses: actions/cache@v4
         with:
           path: |
             .cache
             ~/.cache/melange
-          key: baseless-${{ runner.os }}-${{ hashFiles('melange/*.yaml', 'apko/*.yaml') }}
+          key: baseless-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('melange/*.yaml', 'apko/*.yaml') }}
           restore-keys: |
-            baseless-${{ runner.os }}-
+            baseless-${{ runner.os }}-${{ matrix.arch }}-
 
-      - name: Install pinned apko and Melange
+      - name: Install pinned Melange
         run: bash scripts/install-tools.sh "$PWD/.tools/bin"
 
       - name: Restore and verify the APK signing key
@@ -67,11 +72,31 @@ jobs:
           sudo env \
             MELANGE_BIN="${MELANGE_BIN}" \
             MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
-            bash scripts/build-packages.sh x86_64
-          sudo env \
-            MELANGE_BIN="${MELANGE_BIN}" \
-            MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
-            bash scripts/build-packages.sh aarch64
+            bash scripts/build-packages.sh "${{ matrix.arch }}"
+
+      - name: Upload built packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.arch }}
+          path: packages/**
+          if-no-files-found: error
+          retention-days: 1
+
+  build-scan-publish:
+    runs-on: ubuntu-24.04
+    needs: build-packages
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: packages
+          merge-multiple: true
+
+      - name: Install pinned apko
+        run: bash scripts/install-tools.sh "$PWD/.tools/bin"
 
       - name: Standard strict gate for static
         uses: abxst/actions/strict@v3
@@ -164,7 +189,3 @@ jobs:
           .tools/bin/crane copy \
             "${REGISTRY}/${IMAGE_NAME}:glibc-${GITHUB_SHA}" \
             "${REGISTRY}/${IMAGE_NAME}:latest"
-
-      - name: Remove private signing key
-        if: always()
-        run: rm -f keys/baseless.rsa
