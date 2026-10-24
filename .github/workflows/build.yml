@@ -182,7 +182,8 @@ jobs:
             release_ref="${REGISTRY}/${IMAGE_NAME}:${variant}-${GITHUB_SHA}"
             .tools/bin/crane copy --insecure "${source_ref}" "${release_ref}"
             digest="$(.tools/bin/crane digest "${release_ref}")"
-            .tools/bin/cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${digest}"
+            .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
+              "${REGISTRY}/${IMAGE_NAME}@${digest}"
             .tools/bin/crane copy "${release_ref}" "${REGISTRY}/${IMAGE_NAME}:${variant}"
           done
           .tools/bin/crane copy \
