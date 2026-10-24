@@ -1,0 +1,36 @@
+package:
+  name: baseless-ca-certificates
+  version: "20261020"
+  epoch: 0
+  description: Mozilla CA certificate bundle for Baseless
+  copyright:
+    - license: MPL-2.0 AND MIT
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.24/main
+    packages:
+      - alpine-base
+      - ca-certificates-bundle=20261020-r0
+
+pipeline:
+  - name: Install CA bundle and compatibility links
+    runs: |
+      install -Dm644 /etc/ssl/certs/ca-certificates.crt \
+        "${{targets.destdir}}"/etc/ssl/certs/ca-certificates.crt
+      install -d \
+        "${{targets.destdir}}"/etc/pki/tls/certs \
+        "${{targets.destdir}}"/etc/ssl/cert.pem.d
+      ln -s /etc/ssl/certs/ca-certificates.crt \
+        "${{targets.destdir}}"/etc/ssl/cert.pem
+      ln -s /etc/ssl/certs/ca-certificates.crt \
+        "${{targets.destdir}}"/etc/pki/tls/certs/ca-bundle.crt
+
+test:
+  pipeline:
+    - runs: test -s /etc/ssl/certs/ca-certificates.crt
+
+update:
+  enabled: false
+

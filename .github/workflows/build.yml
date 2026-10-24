@@ -1,0 +1,164 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 15 * * *" # 22:00 Asia/Saigon
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: baseless-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APKO_VERSION: "1.4.4"
+  MELANGE_VERSION: "0.59.1"
+  TRIVY_VERSION: "0.76.1"
+  GRYPE_VERSION: "0.121.0"
+  COSIGN_VERSION: "3.1.4"
+  CRANE_VERSION: "v0.22.1"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/baseless
+
+jobs:
+  build-scan-publish:
+    runs-on: ubuntu-24.04
+    environment: keys
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Restore Melange and apko caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache
+            ~/.cache/melange
+          key: baseless-${{ runner.os }}-${{ hashFiles('melange/*.yaml', 'apko/*.yaml') }}
+          restore-keys: |
+            baseless-${{ runner.os }}-
+
+      - name: Install pinned apko and Melange
+        run: bash scripts/install-tools.sh "$PWD/.tools/bin"
+
+      - name: Restore and verify the APK signing key
+        env:
+          BASELESS_MELANGE_RSA_KEY_B64: ${{ secrets.BASELESS_MELANGE_RSA_KEY_B64 }}
+        run: |
+          test -n "${BASELESS_MELANGE_RSA_KEY_B64}"
+          printf '%s' "${BASELESS_MELANGE_RSA_KEY_B64}" | base64 --decode > keys/baseless.rsa
+          chmod 0600 keys/baseless.rsa
+          bash scripts/verify-signing-key.sh keys/baseless.rsa keys/baseless.rsa.pub
+
+      - name: Build signed Baseless packages
+        env:
+          MELANGE_BIN: ${{ github.workspace }}/.tools/bin/melange
+          MELANGE_SIGNING_KEY: ${{ github.workspace }}/keys/baseless.rsa
+        run: |
+          bash scripts/build-packages.sh x86_64
+          bash scripts/build-packages.sh aarch64
+
+      - name: Standard strict gate for static
+        uses: abxst/actions/strict@v3
+        with:
+          push: false
+          image-name: ${{ github.repository }}-static-verification
+          dockerfile: ./Dockerfile.strict
+          build-args: |
+            VARIANT=static
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Standard strict gate for glibc
+        uses: abxst/actions/strict@v3
+        with:
+          push: false
+          image-name: ${{ github.repository }}-glibc-verification
+          dockerfile: ./Dockerfile.strict
+          build-args: |
+            VARIANT=glibc
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start ephemeral registry
+        run: >-
+          docker run --detach --publish 5000:5000 --name baseless-registry
+          registry:2@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+
+      - name: Publish candidates only to the ephemeral registry
+        run: |
+          mkdir -p dist/sbom
+          build_date="$(git show -s --format=%cI HEAD)"
+          for variant in static glibc debug; do
+            mkdir -p "dist/sbom/${variant}"
+            .tools/bin/apko -C "$PWD" publish "apko/${variant}.yaml" \
+              "localhost:5000/baseless:${variant}-${GITHUB_SHA}" \
+              --arch x86_64,aarch64 \
+              --build-date "${build_date}" \
+              --sbom-path "dist/sbom/${variant}"
+          done
+
+      - name: Install pinned security and registry tools
+        run: |
+          mkdir -p .tools/bin .tools/downloads
+
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o .tools/downloads/trivy.tar.gz
+          echo "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0  .tools/downloads/trivy.tar.gz" | sha256sum -c -
+          tar -xzf .tools/downloads/trivy.tar.gz -C .tools/bin trivy
+
+          curl -fsSL "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz" -o .tools/downloads/grype.tar.gz
+          echo "64e07133d3486115de647a66581461dccf5c732748a0a3119077395565f15519  .tools/downloads/grype.tar.gz" | sha256sum -c -
+          tar -xzf .tools/downloads/grype.tar.gz -C .tools/bin grype
+
+          curl -fsSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64" -o .tools/bin/cosign
+          echo "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa  .tools/bin/cosign" | sha256sum -c -
+          chmod 0755 .tools/bin/cosign
+
+          GOBIN="$PWD/.tools/bin" go install "github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION}"
+
+      - name: Zero-known-CVE gate
+        env:
+          GRYPE_DB_CACHE_DIR: ${{ github.workspace }}/.cache/grype/db
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
+          GRYPE_BIN: ${{ github.workspace }}/.tools/bin/grype
+        run: |
+          for variant in static glibc debug; do
+            ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
+            .tools/bin/trivy image --insecure --exit-code 1 \
+              --scanners secret "${ref}"
+          done
+          bash scripts/scan-components.sh
+
+      - name: Login to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "${GHCR_TOKEN}" | .tools/bin/crane auth login ghcr.io \
+            --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Promote exact scanned manifests
+        run: |
+          for variant in static glibc debug; do
+            source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
+            release_ref="${REGISTRY}/${IMAGE_NAME}:${variant}-${GITHUB_SHA}"
+            .tools/bin/crane copy --insecure "${source_ref}" "${release_ref}"
+            digest="$(.tools/bin/crane digest "${release_ref}")"
+            .tools/bin/cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${digest}"
+            .tools/bin/crane copy "${release_ref}" "${REGISTRY}/${IMAGE_NAME}:${variant}"
+          done
+          .tools/bin/crane copy \
+            "${REGISTRY}/${IMAGE_NAME}:glibc-${GITHUB_SHA}" \
+            "${REGISTRY}/${IMAGE_NAME}:latest"
+
+      - name: Remove private signing key
+        if: always()
+        run: rm -f keys/baseless.rsa

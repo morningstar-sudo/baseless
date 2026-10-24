@@ -1,0 +1,25 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:329f618f-f7cc-4fc9-90d0-1640b777fd23",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-24T00:00:00Z",
+    "component": {
+      "type": "container",
+      "name": "baseless-glibc",
+      "version": "2.44",
+      "purl": "pkg:oci/baseless-glibc@2.44"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "glibc",
+      "group": "gnu",
+      "version": "2.44",
+      "purl": "pkg:generic/gnu/glibc@2.44",
+      "cpe": "cpe:2.3:a:gnu:glibc:2.44:*:*:*:*:*:*:*"
+    }
+  ]
+}

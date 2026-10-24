@@ -1,0 +1,31 @@
+FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS assemble
+
+ARG VARIANT=static
+
+COPY packages/x86_64/ /repo/
+
+RUN set -eu; \
+    packages="/repo/baseless-baselayout-[0-9]*.apk \
+      /repo/baseless-ca-certificates-[0-9]*.apk \
+      /repo/baseless-tzdata-[0-9]*.apk"; \
+    case "${VARIANT}" in \
+      static) ;; \
+      glibc) packages="${packages} /repo/baseless-glibc-[0-9]*.apk" ;; \
+      *) echo "unsupported strict variant: ${VARIANT}" >&2; exit 1 ;; \
+    esac; \
+    apk add --root /rootfs --initdb --allow-untrusted ${packages}; \
+    test ! -e /rootfs/sbin/apk; \
+    test ! -e /rootfs/bin/sh
+
+FROM scratch
+
+COPY --from=assemble /rootfs/ /
+
+USER 65532:65532
+WORKDIR /app
+
+ENV PATH=/usr/local/bin:/usr/bin \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    LANG=C.UTF-8 \
+    TZ=UTC
+

@@ -1,0 +1,31 @@
+contents:
+  repositories:
+    - '@local ./packages'
+  keyring:
+    - ./keys/baseless.rsa.pub
+  packages:
+    - baseless-baselayout@local
+    - baseless-ca-certificates@local
+    - baseless-tzdata@local
+
+accounts:
+  run-as: 65532
+
+environment:
+  PATH: /usr/local/bin:/usr/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+  LANG: C.UTF-8
+  TZ: UTC
+
+work-dir: /app
+
+archs:
+  - amd64
+  - arm64
+
+annotations:
+  org.opencontainers.image.title: Baseless static
+  org.opencontainers.image.description: Minimal Baseless runtime for static binaries
+  org.opencontainers.image.source: https://github.com/morningstar-sudo/base-distroless
+  org.opencontainers.image.vendor: morningstar-sudo
+

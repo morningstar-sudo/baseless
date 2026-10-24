@@ -1,0 +1,105 @@
+package:
+  name: baseless-baselayout
+  version: "20261024"
+  epoch: 0
+  description: Minimal filesystem layout and identities for Baseless
+  copyright:
+    - license: Apache-2.0
+  dependencies:
+    provides:
+      - merged-bin
+      - merged-sbin
+      - merged-usrsbin
+      - merged-lib
+      - merged-varrun
+  checks:
+    disabled:
+      - usrmerge
+      - tempdir
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.24/main
+    packages:
+      - alpine-base
+
+pipeline:
+  - name: Create Baseless filesystem layout
+    runs: |
+      install -d \
+        "${{targets.destdir}}"/app \
+        "${{targets.destdir}}"/dev \
+        "${{targets.destdir}}"/etc \
+        "${{targets.destdir}}"/home/nonroot \
+        "${{targets.destdir}}"/proc \
+        "${{targets.destdir}}"/root \
+        "${{targets.destdir}}"/run \
+        "${{targets.destdir}}"/sys \
+        "${{targets.destdir}}"/tmp \
+        "${{targets.destdir}}"/usr/bin \
+        "${{targets.destdir}}"/usr/lib \
+        "${{targets.destdir}}"/usr/local/bin \
+        "${{targets.destdir}}"/var/empty \
+        "${{targets.destdir}}"/var/log \
+        "${{targets.destdir}}"/var/tmp
+
+      chmod 0700 "${{targets.destdir}}"/root
+      chmod 1777 "${{targets.destdir}}"/tmp "${{targets.destdir}}"/var/tmp
+
+      ln -s usr/bin "${{targets.destdir}}"/bin
+      ln -s usr/bin "${{targets.destdir}}"/sbin
+      ln -s bin "${{targets.destdir}}"/usr/sbin
+      ln -s usr/lib "${{targets.destdir}}"/lib
+      ln -s usr/lib "${{targets.destdir}}"/lib64
+      ln -s lib "${{targets.destdir}}"/usr/lib64
+      ln -s ../run "${{targets.destdir}}"/var/run
+
+      cat > "${{targets.destdir}}"/etc/passwd <<'EOF'
+      root:x:0:0:root:/root:/sbin/nologin
+      nonroot:x:65532:65532:Baseless nonroot:/home/nonroot:/sbin/nologin
+      nobody:x:65534:65534:nobody:/var/empty:/sbin/nologin
+      EOF
+
+      cat > "${{targets.destdir}}"/etc/group <<'EOF'
+      root:x:0:
+      nonroot:x:65532:
+      nobody:x:65534:
+      EOF
+
+      cat > "${{targets.destdir}}"/etc/shadow <<'EOF'
+      root:*:0:0:99999:7:::
+      nonroot:!:0:0:99999:7:::
+      nobody:!:0:0:99999:7:::
+      EOF
+      chmod 000 "${{targets.destdir}}"/etc/shadow
+
+      cat > "${{targets.destdir}}"/etc/nsswitch.conf <<'EOF'
+      passwd: files
+      group: files
+      shadow: files
+      hosts: files dns
+      networks: files dns
+      EOF
+
+      cat > "${{targets.destdir}}"/etc/os-release <<'EOF'
+      ID=baseless
+      NAME="Baseless"
+      PRETTY_NAME="Baseless"
+      VERSION_ID="2026.10"
+      HOME_URL="https://github.com/morningstar-sudo/base-distroless"
+      BUG_REPORT_URL="https://github.com/morningstar-sudo/base-distroless/issues"
+      EOF
+
+      ln -s /proc/mounts "${{targets.destdir}}"/etc/mtab
+
+test:
+  pipeline:
+    - runs: |
+        grep -qx 'ID=baseless' /etc/os-release
+        grep -q '^nonroot:x:65532:65532:' /etc/passwd
+        test "$(stat -c %a /tmp)" = 1777
+
+update:
+  enabled: false
+

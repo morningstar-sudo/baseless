@@ -1,0 +1,35 @@
+package:
+  name: baseless-tzdata
+  version: "2026e"
+  epoch: 0
+  description: IANA timezone database for Baseless
+  copyright:
+    - license: CC-PDDC
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.24/main
+    packages:
+      - alpine-base
+      - tzdata=2026e-r0
+
+pipeline:
+  - name: Install timezone database
+    runs: |
+      install -d \
+        "${{targets.destdir}}"/etc \
+        "${{targets.destdir}}"/usr/share
+      cp -a /usr/share/zoneinfo "${{targets.destdir}}"/usr/share/
+      ln -s /usr/share/zoneinfo/UTC "${{targets.destdir}}"/etc/localtime
+
+test:
+  pipeline:
+    - runs: |
+        test -L /etc/localtime
+        test -f /usr/share/zoneinfo/UTC
+        test -f /usr/share/zoneinfo/Asia/Ho_Chi_Minh
+
+update:
+  enabled: false
+

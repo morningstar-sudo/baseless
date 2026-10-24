@@ -1,0 +1,12 @@
+# Melange package-signing private keys
+keys/*.rsa
+!keys/*.rsa.pub
+
+# Local build output
+packages/
+.tools/
+.cache/
+dist/
+*.tar
+*.tar.gz
+sbom-*.spdx.json

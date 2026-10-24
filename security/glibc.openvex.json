@@ -1,0 +1,111 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/morningstar-sudo/base-distroless/security/glibc-2.44-045c5147",
+  "author": "https://github.com/morningstar-sudo/base-distroless",
+  "timestamp": "2026-10-24T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": { "@id": "CVE-2026-0861" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Fixed upstream before glibc 2.44 (master fix c9188d333717d3ceb7e3020011651f424f749f93)."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-19499" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 63b53df5."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-19542" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit d6ff2743."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-77117" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 6f9b2bfa; affected gconv modules are also split out of the runtime image."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-80489" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit cb61572e; affected gconv modules are also split out of the runtime image."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-8674" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 1f502624."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-86805" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 6b48c0b2."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-95818" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 6b48c0b2."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-97399" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 34106fee."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-18374" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit 0b4e41fc."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2026-89092" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Included by release/2.44/master commit c90398e0; nscd is not shipped in the runtime package."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2019-1010022" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Disputed CVE; upstream treats the reported mitigation bypass as a non-security bug."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2019-1010023" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "status_notes": "The reported attack is through ldd; Baseless keeps ldd in the unshipped utils subpackage."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2019-1010024" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Disputed CVE; upstream treats the reported ASLR mitigation bypass as a non-security bug."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2019-1010025" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Disputed CVE; upstream states that ASLR bypass alone is not a vulnerability."
+    },
+    {
+      "vulnerability": { "@id": "CVE-2010-4756" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "The bare base has no application passing attacker-controlled patterns to glob; downstream applications must reassess this contextual statement."
+    }
+  ]
+}
+

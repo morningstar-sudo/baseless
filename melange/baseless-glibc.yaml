@@ -1,0 +1,169 @@
+package:
+  name: baseless-glibc
+  version: "2.44"
+  epoch: 0
+  description: GNU C library runtime for Baseless
+  copyright:
+    - license: LGPL-2.1-or-later
+  cpe:
+    vendor: gnu
+    product: glibc
+  dependencies:
+    runtime:
+      - baseless-baselayout
+  resources:
+    cpu: "8"
+    memory: 10Gi
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.24/main
+      - https://dl-cdn.alpinelinux.org/alpine/v3.24/community
+    packages:
+      - alpine-base
+      - bash
+      - bison
+      - build-base
+      - gawk
+      - gettext
+      - git
+      - grep
+      - linux-headers
+      - python3
+      - texinfo
+  environment:
+    CPPFLAGS: ""
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://gitlab.com/gnutools/glibc.git
+      branch: release/${{package.version}}/master
+      expected-commit: 045c51476c7abf6144815a4db44f51a118b4cb3e
+
+  - name: Configure glibc
+    runs: |
+      mkdir build
+      cat > build/configparms <<'EOF'
+      slibdir=/usr/lib
+      libdir=/usr/lib
+      rtlddir=/usr/lib
+      rootsbindir=/usr/bin
+      EOF
+      cd build
+      # Alpine's GCC searches /usr/include (musl) before its compiler-owned
+      # headers.  glibc needs GCC's stdarg.h so __gnuc_va_list is available;
+      # force that directory ahead of the musl bootstrap headers.
+      gcc_include="$(gcc -print-file-name=include)"
+      CC="gcc -isystem $gcc_include" \
+      CXX="g++ -isystem $gcc_include" \
+      ../configure \
+        --prefix=/usr \
+        --libdir=/usr/lib \
+        --includedir=/usr/include \
+        --sbindir=/usr/bin \
+        --host=${{host.triplet.gnu}} \
+        --build=${{host.triplet.gnu}} \
+        --enable-bind-now \
+        --enable-stack-protector=strong \
+        --enable-cet \
+        --disable-werror \
+        --disable-crypt \
+        --enable-kernel=4.9 \
+        --with-pkgversion="Baseless glibc ${{package.full-version}}"
+
+  - name: Build and install glibc
+    runs: |
+      make -C build -j"$(nproc)"
+      make -C build install DESTDIR="${{targets.destdir}}"
+
+  - name: Remove build-only documentation
+    runs: |
+      rm -rf \
+        "${{targets.destdir}}"/usr/share/info \
+        "${{targets.destdir}}"/usr/share/man
+
+  - name: Normalize runtime loader paths
+    runs: |
+      case "${{build.arch}}" in
+        x86_64)
+          test -e "${{targets.destdir}}"/usr/lib/ld-linux-x86-64.so.2
+          ;;
+        aarch64)
+          test -e "${{targets.destdir}}"/usr/lib/ld-linux-aarch64.so.1
+          ;;
+        *)
+          echo "unsupported architecture: ${{build.arch}}" >&2
+          exit 1
+          ;;
+      esac
+
+subpackages:
+  - name: baseless-glibc-dev
+    description: Development files for Baseless glibc
+    pipeline:
+      - uses: split/dev
+      - runs: |
+          install -d "${{targets.subpkgdir}}"/usr/lib
+          for file in libc.so libm.so; do
+            if [ -e "${{targets.destdir}}/usr/lib/$file" ]; then
+              mv "${{targets.destdir}}/usr/lib/$file" \
+                "${{targets.subpkgdir}}/usr/lib/"
+            fi
+          done
+    dependencies:
+      runtime:
+        - baseless-glibc
+
+  - name: baseless-glibc-utils
+    description: Administrative utilities and locale sources for Baseless glibc
+    pipeline:
+      - runs: |
+          install -d \
+            "${{targets.subpkgdir}}"/usr/bin \
+            "${{targets.subpkgdir}}"/usr/share
+
+          for path in bin sbin; do
+            if [ -d "${{targets.destdir}}/usr/$path" ]; then
+              for item in "${{targets.destdir}}/usr/$path"/*; do
+                [ -e "$item" ] || continue
+                mv "$item" "${{targets.subpkgdir}}/usr/bin/"
+              done
+              rmdir "${{targets.destdir}}/usr/$path"
+            fi
+          done
+
+          if [ -d "${{targets.destdir}}/usr/share" ]; then
+            for item in "${{targets.destdir}}/usr/share"/*; do
+              [ -e "$item" ] || continue
+              mv "$item" "${{targets.subpkgdir}}/usr/share/"
+            done
+            rmdir "${{targets.destdir}}/usr/share"
+          fi
+    dependencies:
+      runtime:
+        - baseless-glibc
+
+  - name: baseless-glibc-gconv
+    description: Optional character conversion modules for Baseless glibc
+    pipeline:
+      - runs: |
+          if [ -d "${{targets.destdir}}/usr/lib/gconv" ]; then
+            install -d "${{targets.subpkgdir}}"/usr/lib
+            mv "${{targets.destdir}}/usr/lib/gconv" \
+              "${{targets.subpkgdir}}/usr/lib/"
+          fi
+    dependencies:
+      runtime:
+        - baseless-glibc
+
+test:
+  pipeline:
+    - runs: |
+        test -e /usr/lib/libc.so.6
+        /usr/lib/libc.so.6 | grep -q 'GNU C Library'
+
+update:
+  enabled: false
+
