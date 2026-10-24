@@ -1,7 +1,7 @@
 package:
   name: baseless-glibc
   version: "2.44"
-  epoch: 0
+  epoch: 1
   description: GNU C library runtime for Baseless
   copyright:
     - license: LGPL-2.1-or-later
@@ -76,6 +76,7 @@ pipeline:
   - name: Build and install glibc
     runs: |
       make -C build -j"$(nproc)" lib
+      make -C build/mathvec -j"$(nproc)"
       make -C build install DESTDIR="${{targets.destdir}}"
 
   - name: Remove build-only documentation
