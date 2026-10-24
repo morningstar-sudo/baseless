@@ -28,19 +28,18 @@ env:
 
 jobs:
   build-packages:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     environment: keys
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-
-      - uses: docker/setup-qemu-action@v3
-        if: matrix.arch == 'aarch64'
-        with:
-          platforms: arm64
 
       - name: Restore Melange cache
         uses: actions/cache@v4
