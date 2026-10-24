@@ -64,8 +64,14 @@ jobs:
           MELANGE_BIN: ${{ github.workspace }}/.tools/bin/melange
           MELANGE_SIGNING_KEY: ${{ github.workspace }}/keys/baseless.rsa
         run: |
-          bash scripts/build-packages.sh x86_64
-          bash scripts/build-packages.sh aarch64
+          sudo env \
+            MELANGE_BIN="${MELANGE_BIN}" \
+            MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
+            bash scripts/build-packages.sh x86_64
+          sudo env \
+            MELANGE_BIN="${MELANGE_BIN}" \
+            MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
+            bash scripts/build-packages.sh aarch64
 
       - name: Standard strict gate for static
         uses: abxst/actions/strict@v3
