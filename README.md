@@ -4,11 +4,13 @@ Baseless is a small, auditable distroless base built with Melange packages and a
 
 ## Images
 
-| Tag | Intended workload | Runtime contents |
-| --- | --- | --- |
-| `static` | Fully static application binaries | filesystem layout, CA bundle, timezone data |
-| `glibc` / `latest` | Dynamically linked GNU/Linux application binaries | `static` plus glibc |
-| `debug` | Interactive diagnosis only | `glibc` plus BusyBox, curl, jq, OpenSSL, procps-ng; runs as root |
+| Image | Default tag | Intended workload | Runtime contents |
+| --- | --- | --- | --- |
+| `ghcr.io/morningstar-sudo/baseless-static` | `latest` | Fully static application binaries | filesystem layout, CA bundle, timezone data |
+| `ghcr.io/morningstar-sudo/baseless-glibc` | `latest` | Dynamically linked GNU/Linux application binaries | `static` plus glibc |
+| `ghcr.io/morningstar-sudo/baseless-debug` | `latest` | Interactive diagnosis only | `glibc` plus BusyBox, curl, jq, OpenSSL, procps-ng; runs as root |
+
+Each image is published under its own GHCR package name. CI also publishes a commit-SHA tag for traceability and signs each image digest with Cosign after the scan gates pass.
 
 The APK database is intentionally retained as read-only inventory for SBOM generation and vulnerability scanners. It does not make `apk` available inside any image. The production `static` and `glibc` variants have no shell; only the explicitly non-production `debug` variant has one.
 

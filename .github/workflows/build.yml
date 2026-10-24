@@ -24,7 +24,6 @@ env:
   COSIGN_VERSION: "3.1.4"
   CRANE_VERSION: "v0.22.1"
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/baseless
 
 jobs:
   build-packages:
@@ -179,13 +178,11 @@ jobs:
         run: |
           for variant in static glibc debug; do
             source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
-            release_ref="${REGISTRY}/${IMAGE_NAME}:${variant}-${GITHUB_SHA}"
+            release_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless-${variant}"
+            release_ref="${release_image}:${GITHUB_SHA}"
             .tools/bin/crane copy --insecure "${source_ref}" "${release_ref}"
             digest="$(.tools/bin/crane digest "${release_ref}")"
             .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
-              "${REGISTRY}/${IMAGE_NAME}@${digest}"
-            .tools/bin/crane copy "${release_ref}" "${REGISTRY}/${IMAGE_NAME}:${variant}"
+              "${release_image}@${digest}"
+            .tools/bin/crane copy "${release_ref}" "${release_image}:latest"
           done
-          .tools/bin/crane copy \
-            "${REGISTRY}/${IMAGE_NAME}:glibc-${GITHUB_SHA}" \
-            "${REGISTRY}/${IMAGE_NAME}:latest"
