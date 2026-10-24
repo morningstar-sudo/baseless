@@ -32,7 +32,7 @@ BASELESS_MELANGE_RSA_KEY_B64
 
 The workflow derives the public key from that secret and compares it byte-for-byte with the committed public key before building packages. This committed key verifies APK package signatures; it is not used for OCI image signatures. OCI manifests are signed separately with keyless Cosign after all scan gates pass.
 
-Image signatures are stored as legacy Cosign tags in `ghcr.io/morningstar-sudo/baseless`, separate from the `baseless-static`, `baseless-glibc`, and `baseless-debug` image packages. To verify an image, point Cosign at that signature repository:
+CI first copies each scanned image into `ghcr.io/morningstar-sudo/baseless`, signs its digest there using legacy Cosign tags, then copies the unchanged manifest into the separate `baseless-static`, `baseless-glibc`, and `baseless-debug` image packages. Signatures remain in the `baseless` package; to verify an image, point Cosign at that signature repository:
 
 ```sh
 COSIGN_REPOSITORY=ghcr.io/morningstar-sudo/baseless cosign verify \

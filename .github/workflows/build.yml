@@ -176,15 +176,16 @@ jobs:
 
       - name: Promote exact scanned manifests
         run: |
-          export COSIGN_REPOSITORY="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless"
-
           for variant in static glibc debug; do
             source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
+            signing_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless"
+            signing_ref="${signing_image}:${variant}-${GITHUB_SHA}"
             release_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless-${variant}"
             release_ref="${release_image}:${GITHUB_SHA}"
-            .tools/bin/crane copy --insecure "${source_ref}" "${release_ref}"
-            digest="$(.tools/bin/crane digest "${release_ref}")"
+            .tools/bin/crane copy --insecure "${source_ref}" "${signing_ref}"
+            digest="$(.tools/bin/crane digest "${signing_ref}")"
             .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
-              "${release_image}@${digest}"
+              "${signing_image}@${digest}"
+            .tools/bin/crane copy "${signing_ref}" "${release_ref}"
             .tools/bin/crane copy "${release_ref}" "${release_image}:latest"
           done
