@@ -178,16 +178,13 @@ jobs:
         run: |
           for variant in static glibc debug; do
             source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
-            signing_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless"
-            signing_ref="${signing_image}:${variant}-${GITHUB_SHA}"
             release_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless-${variant}"
             release_ref="${release_image}:${GITHUB_SHA}"
             # GHCR can reject one child manifest when a new multi-arch image is
             # uploaded concurrently. Serialize child-manifest copies.
-            .tools/bin/crane copy --jobs=1 --insecure "${source_ref}" "${signing_ref}"
-            digest="$(.tools/bin/crane digest "${signing_ref}")"
+            .tools/bin/crane copy --jobs=1 --insecure "${source_ref}" "${release_ref}"
+            digest="$(.tools/bin/crane digest "${release_ref}")"
             .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
-              "${signing_image}@${digest}"
-            .tools/bin/crane copy --jobs=1 "${signing_ref}" "${release_ref}"
+              "${release_image}@${digest}"
             .tools/bin/crane tag "${release_ref}" latest
           done
