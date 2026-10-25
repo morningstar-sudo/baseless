@@ -222,7 +222,7 @@ jobs:
               platform_ref="${release_image}@${platform_digest}"
               .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
                 "${platform_ref}"
-              .tools/bin/cosign attest --yes --registry-referrers-mode=legacy \
+              .tools/bin/cosign attest --yes \
                 --type spdxjson \
                 --predicate "dist/sbom/${variant}/sbom-${apk_arch}.spdx.json" \
                 "${platform_ref}"
