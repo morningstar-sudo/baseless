@@ -1,0 +1,31 @@
+name: Baseless security gate
+description: Validate Baseless identity, package inventory, and OSV advisories for a container image
+
+inputs:
+  image:
+    description: Local or registry image reference to scan
+    required: true
+  report:
+    description: Optional path for the JSON report
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Scan Baseless package inventory
+      shell: bash
+      env:
+        BASELESS_IMAGE: ${{ inputs.image }}
+        BASELESS_REPORT: ${{ inputs.report }}
+      run: |
+        args=(image "${BASELESS_IMAGE}")
+        if [[ -n "${BASELESS_REPORT}" ]]; then
+          mkdir -p "$(dirname "${BASELESS_REPORT}")"
+          args=(--output "${BASELESS_REPORT}" "${args[@]}")
+        fi
+        python3 "${GITHUB_ACTION_PATH}/../scripts/baseless_security.py" "${args[@]}"
+
+branding:
+  icon: shield
+  color: blue

@@ -10,3 +10,5 @@ dist/
 *.tar
 *.tar.gz
 sbom-*.spdx.json
+__pycache__/
+*.py[cod]

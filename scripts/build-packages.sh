@@ -31,6 +31,9 @@ for recipe in "${recipes[@]}"; do
     --arch "${arch}" \
     --runner docker \
     --signing-key "${signing_key}" \
+    --namespace baseless \
+    --git-repo-url https://github.com/morningstar-sudo/baseless \
+    --license Apache-2.0 \
     --out-dir "${repo_root}/packages" \
     --log-level "${MELANGE_LOG_LEVEL:-warn}"
 done

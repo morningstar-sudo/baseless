@@ -27,4 +27,9 @@ annotations:
   org.opencontainers.image.title: Baseless static
   org.opencontainers.image.description: Minimal Baseless runtime for static binaries
   org.opencontainers.image.source: https://github.com/morningstar-sudo/baseless
+  org.opencontainers.image.url: https://github.com/morningstar-sudo/baseless
   org.opencontainers.image.vendor: morningstar-sudo
+  org.opencontainers.image.version: "2026.10"
+  org.opencontainers.image.licenses: Apache-2.0
+  io.github.morningstar-sudo.baseless.id: baseless
+  io.github.morningstar-sudo.baseless.variant: static

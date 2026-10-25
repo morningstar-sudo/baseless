@@ -77,9 +77,13 @@ pipeline:
       cat > "${{targets.destdir}}"/etc/os-release <<'EOF'
       ID=baseless
       NAME="Baseless"
-      PRETTY_NAME="Baseless"
+      VERSION="2026.10"
       VERSION_ID="2026.10"
+      PRETTY_NAME="Baseless 2026.10"
+      CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"
       HOME_URL="https://github.com/morningstar-sudo/baseless"
+      DOCUMENTATION_URL="https://github.com/morningstar-sudo/baseless#readme"
+      SUPPORT_URL="https://github.com/morningstar-sudo/baseless/security/policy"
       BUG_REPORT_URL="https://github.com/morningstar-sudo/baseless/issues"
       EOF
 
@@ -89,6 +93,9 @@ test:
   pipeline:
     - runs: |
         grep -qx 'ID=baseless' /etc/os-release
+        grep -qx 'VERSION_ID="2026.10"' /etc/os-release
+        grep -Fqx 'CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"' /etc/os-release
+        ! grep -q '^ID_LIKE=' /etc/os-release
         grep -q '^nonroot:x:65532:65532:' /etc/passwd
         test "$(stat -c %a /tmp)" = 1777
 

@@ -1,10 +1,12 @@
 FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS assemble
 
 ARG VARIANT=static
+ARG CACHE_BUST=local
 
 COPY packages/x86_64/ /repo/
 
 RUN set -eu; \
+    test -n "${CACHE_BUST}"; \
     packages="/repo/baseless-baselayout-[0-9]*.apk \
       /repo/baseless-ca-certificates-[0-9]*.apk \
       /repo/baseless-tzdata-[0-9]*.apk"; \

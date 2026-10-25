@@ -40,16 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Melange cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            .cache
-            ~/.cache/melange
-          key: baseless-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('melange/*.yaml', 'apko/*.yaml') }}
-          restore-keys: |
-            baseless-${{ runner.os }}-${{ matrix.arch }}-
-
       - name: Install pinned Melange
         run: bash scripts/install-tools.sh "$PWD/.tools/bin"
 
@@ -104,6 +94,7 @@ jobs:
           dockerfile: ./Dockerfile.strict
           build-args: |
             VARIANT=static
+            CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -115,6 +106,7 @@ jobs:
           dockerfile: ./Dockerfile.strict
           build-args: |
             VARIANT=glibc
+            CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -160,12 +152,38 @@ jobs:
           TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
           GRYPE_BIN: ${{ github.workspace }}/.tools/bin/grype
         run: |
+          python3 -m unittest discover -s tests -v
+          python3 scripts/baseless_security.py validate
+          mkdir -p dist/security
+          for sbom in dist/sbom/*/sbom-*.spdx.json; do
+            variant="$(basename "$(dirname "${sbom}")")"
+            name="$(basename "${sbom}" .spdx.json)"
+            mkdir -p "dist/security/${variant}"
+            python3 scripts/baseless_security.py \
+              --output "dist/security/${variant}/${name}.baseless.json" \
+              sbom "${sbom}"
+          done
           for variant in static glibc debug; do
             ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
+            docker pull "${ref}"
+            python3 scripts/baseless_security.py \
+              --output "dist/security/${variant}/image.baseless.json" \
+              image "${ref}" --require-current
             .tools/bin/trivy image --insecure --exit-code 1 \
               --scanners secret "${ref}"
           done
           bash scripts/scan-components.sh
+
+      - name: Upload security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseless-security-${{ github.sha }}
+          path: |
+            dist/sbom/**
+            dist/security/**
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Login to GHCR
         env:
@@ -184,6 +202,28 @@ jobs:
             # uploaded concurrently. Serialize child-manifest copies.
             .tools/bin/crane copy --jobs=1 --insecure "${source_ref}" "${release_ref}"
             digest="$(.tools/bin/crane digest "${release_ref}")"
+
+            manifest="$(.tools/bin/crane manifest "${release_ref}")"
+            for architecture in amd64 arm64; do
+              case "${architecture}" in
+                amd64) apk_arch=x86_64 ;;
+                arm64) apk_arch=aarch64 ;;
+              esac
+              platform_digest="$(jq -r --arg arch "${architecture}" \
+                '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest' \
+                <<<"${manifest}")"
+              test -n "${platform_digest}"
+              test "${platform_digest}" != null
+
+              platform_ref="${release_image}@${platform_digest}"
+              .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
+                "${platform_ref}"
+              .tools/bin/cosign attest --yes --registry-referrers-mode=legacy \
+                --type spdxjson \
+                --predicate "dist/sbom/${variant}/sbom-${apk_arch}.spdx.json" \
+                "${platform_ref}"
+            done
+
             .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
               "${release_image}@${digest}"
             .tools/bin/crane tag "${release_ref}" latest
