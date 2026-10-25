@@ -156,6 +156,10 @@ jobs:
           python3 scripts/baseless_security.py validate
           mkdir -p dist/security
           for sbom in dist/sbom/*/sbom-*.spdx.json; do
+            # The multi-arch index SBOM lists image manifests, not packages.
+            if [ "$(basename "${sbom}")" = sbom-index.spdx.json ]; then
+              continue
+            fi
             variant="$(basename "$(dirname "${sbom}")")"
             name="$(basename "${sbom}" .spdx.json)"
             mkdir -p "dist/security/${variant}"
