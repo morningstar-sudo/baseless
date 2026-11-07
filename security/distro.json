@@ -120,8 +120,17 @@
     },
     {
       "name": "baseless-debug-tools",
-      "current_version": "1.37.0-r31",
+      "current_version": "1.37.0-r32",
       "releases": [
+        {
+          "version": "1.37.0-r32",
+          "status": "supported",
+          "source": {
+            "type": "aggregate",
+            "distro": "alpine:3.24",
+            "components": "security/alpine-runtime.purls"
+          }
+        },
         {
           "version": "1.37.0-r31",
           "status": "supported",

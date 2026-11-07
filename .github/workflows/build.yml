@@ -30,7 +30,13 @@ jobs:
     runs-on: [self-hosted, Linux, X64, semi-system]
     environment: keys
     steps:
+      - name: Restore workspace ownership
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+
       - uses: actions/checkout@v4
+
+      - name: Allow runner user to access Docker
+        run: sudo setfacl -m "u:$(id -u):rw" /var/run/docker.sock
 
       - name: Install pinned Melange
         run: bash scripts/install-tools.sh "$PWD/.tools/bin"
@@ -49,10 +55,7 @@ jobs:
           MELANGE_BIN: ${{ github.workspace }}/.tools/bin/melange
           MELANGE_SIGNING_KEY: ${{ github.workspace }}/keys/baseless.rsa
         run: |
-          sudo env \
-            MELANGE_BIN="${MELANGE_BIN}" \
-            MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
-            bash scripts/build-packages.sh x86_64
+          bash scripts/build-packages.sh x86_64
 
       - name: Upload built packages
         uses: actions/upload-artifact@v4
@@ -66,7 +69,15 @@ jobs:
     runs-on: [self-hosted, Linux, X64, semi-system]
     needs: build-packages
     steps:
+      - name: Restore workspace ownership
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+
       - uses: actions/checkout@v4
+
+      - name: Allow runner user to access Docker
+        run: sudo setfacl -m "u:$(id -u):rw" /var/run/docker.sock
+
+      - uses: docker/setup-buildx-action@v3
 
       - name: Download built packages
         uses: actions/download-artifact@v4
@@ -78,29 +89,49 @@ jobs:
       - name: Install pinned apko
         run: bash scripts/install-tools.sh "$PWD/.tools/bin"
 
-      - name: Standard strict gate for static
-        uses: abxst/actions/strict@v3
+      - name: Build static image for scan
+        uses: docker/build-push-action@v6
         with:
-          push: false
-          image-name: ${{ github.repository }}-static-verification
-          dockerfile: ./Dockerfile.strict
+          context: .
+          file: ./Dockerfile.strict
+          platforms: linux/amd64
+          load: true
+          tags: local/baseless-static-scan:amd64
           build-args: |
             VARIANT=static
             CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Standard strict gate for glibc
-        uses: abxst/actions/strict@v3
+      - name: Vulnerability gate for static (Trivy)
+        uses: aquasecurity/trivy-action@master
         with:
-          push: false
-          image-name: ${{ github.repository }}-glibc-verification
-          dockerfile: ./Dockerfile.strict
+          image-ref: local/baseless-static-scan:amd64
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
+
+      - name: Build glibc image for scan
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.strict
+          platforms: linux/amd64
+          load: true
+          tags: local/baseless-glibc-scan:amd64
           build-args: |
             VARIANT=glibc
             CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Vulnerability gate for glibc (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: local/baseless-glibc-scan:amd64
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
 
       - name: Start ephemeral registry
         run: >-
