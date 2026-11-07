@@ -8,17 +8,37 @@ report_dir="${REPORT_DIR:-${repo_root}/dist/security}"
 test -x "${grype_bin}"
 mkdir -p "${report_dir}"
 
-"${grype_bin}" \
+# Keep JSON evidence, but also show the findings in the Actions log on failure.
+scan_report() {
+  local report="$1"
+  shift
+  local status=0
+  "${grype_bin}" "$@" --output json > "${report}" || status=$?
+  if [ "${status}" -ne 0 ]; then
+    echo "Grype failed (exit ${status}); report: ${report}" >&2
+    if [ -s "${report}" ]; then
+      jq -r '
+        ["PACKAGE", "VERSION", "VULNERABILITY", "SEVERITY", "FIX"],
+        (.matches[]? | [
+          .artifact.name, .artifact.version, .vulnerability.id,
+          .vulnerability.severity,
+          ((.vulnerability.fix.versions // []) | join(","))
+        ]) | @tsv
+      ' "${report}" >&2 || true
+    fi
+  fi
+  return "${status}"
+}
+
+scan_report "${report_dir}/alpine-components.json" \
   "purl:${repo_root}/security/alpine-runtime.purls" \
   --distro alpine:3.24 \
-  --fail-on negligible \
-  --output json > "${report_dir}/alpine-components.json"
+  --fail-on negligible
 
-"${grype_bin}" \
+scan_report "${report_dir}/glibc.json" \
   "sbom:${repo_root}/security/glibc.cdx.json" \
   --vex "${repo_root}/security/glibc.openvex.json" \
-  --fail-on negligible \
-  --output json > "${report_dir}/glibc.json"
+  --fail-on negligible
 
 python3 - "${report_dir}/glibc.json" <<'PY'
 import json
