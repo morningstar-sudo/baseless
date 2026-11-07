@@ -22,7 +22,6 @@ work-dir: /app
 
 archs:
   - amd64
-  - arm64
 
 annotations:
   org.opencontainers.image.title: Baseless glibc

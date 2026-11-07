@@ -27,16 +27,8 @@ env:
 
 jobs:
   build-packages:
-    runs-on: ${{ matrix.runner }}
+    runs-on: vm103-semi-system
     environment: keys
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            runner: ubuntu-24.04
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
@@ -60,18 +52,18 @@ jobs:
           sudo env \
             MELANGE_BIN="${MELANGE_BIN}" \
             MELANGE_SIGNING_KEY="${MELANGE_SIGNING_KEY}" \
-            bash scripts/build-packages.sh "${{ matrix.arch }}"
+            bash scripts/build-packages.sh x86_64
 
       - name: Upload built packages
         uses: actions/upload-artifact@v4
         with:
-          name: packages-${{ matrix.arch }}
+          name: packages-x86_64
           path: packages/**
           if-no-files-found: error
           retention-days: 1
 
   build-scan-publish:
-    runs-on: ubuntu-24.04
+    runs-on: vm103-semi-system
     needs: build-packages
     steps:
       - uses: actions/checkout@v4
@@ -123,7 +115,7 @@ jobs:
             mkdir -p "dist/sbom/${variant}"
             .tools/bin/apko -C "$PWD" publish "apko/${variant}.yaml" \
               "localhost:5000/baseless:${variant}-${GITHUB_SHA}" \
-              --arch x86_64,aarch64 \
+              --arch x86_64 \
               --build-date "${build_date}" \
               --sbom-path "dist/sbom/${variant}"
           done
@@ -156,7 +148,7 @@ jobs:
           python3 scripts/baseless_security.py validate
           mkdir -p dist/security
           for sbom in dist/sbom/*/sbom-*.spdx.json; do
-            # The multi-arch index SBOM lists image manifests, not packages.
+            # The index SBOM lists image manifests, not packages.
             if [ "$(basename "${sbom}")" = sbom-index.spdx.json ]; then
               continue
             fi
@@ -202,31 +194,24 @@ jobs:
             source_ref="localhost:5000/baseless:${variant}-${GITHUB_SHA}"
             release_image="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/baseless-${variant}"
             release_ref="${release_image}:${GITHUB_SHA}"
-            # GHCR can reject one child manifest when a new multi-arch image is
-            # uploaded concurrently. Serialize child-manifest copies.
+            # Serialize child-manifest copies for reliable GHCR uploads.
             .tools/bin/crane copy --jobs=1 --insecure "${source_ref}" "${release_ref}"
             digest="$(.tools/bin/crane digest "${release_ref}")"
 
             manifest="$(.tools/bin/crane manifest "${release_ref}")"
-            for architecture in amd64 arm64; do
-              case "${architecture}" in
-                amd64) apk_arch=x86_64 ;;
-                arm64) apk_arch=aarch64 ;;
-              esac
-              platform_digest="$(jq -r --arg arch "${architecture}" \
-                '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest' \
+            platform_digest="$(jq -r \
+                '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' \
                 <<<"${manifest}")"
-              test -n "${platform_digest}"
-              test "${platform_digest}" != null
+            test -n "${platform_digest}"
+            test "${platform_digest}" != null
 
-              platform_ref="${release_image}@${platform_digest}"
-              .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
-                "${platform_ref}"
-              .tools/bin/cosign attest --yes \
-                --type spdxjson \
-                --predicate "dist/sbom/${variant}/sbom-${apk_arch}.spdx.json" \
-                "${platform_ref}"
-            done
+            platform_ref="${release_image}@${platform_digest}"
+            .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
+              "${platform_ref}"
+            .tools/bin/cosign attest --yes \
+              --type spdxjson \
+              --predicate "dist/sbom/${variant}/sbom-x86_64.spdx.json" \
+              "${platform_ref}"
 
             .tools/bin/cosign sign --yes --registry-referrers-mode=legacy \
               "${release_image}@${digest}"

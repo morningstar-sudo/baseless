@@ -1,6 +1,6 @@
 package:
   name: baseless-tzdata
-  version: "2026e"
+  version: "2026f"
   epoch: 0
   description: IANA timezone database for Baseless
   copyright:
@@ -12,7 +12,7 @@ environment:
       - https://dl-cdn.alpinelinux.org/alpine/v3.24/main
     packages:
       - alpine-base
-      - tzdata=2026e-r0
+      - tzdata=2026f-r0
 
 pipeline:
   - name: Install timezone database
