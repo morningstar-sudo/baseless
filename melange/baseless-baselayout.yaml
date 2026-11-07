@@ -96,7 +96,7 @@ test:
         grep -qx 'VERSION_ID="2026.10"' /etc/os-release
         grep -Fqx 'CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"' /etc/os-release
         ! grep -q '^ID_LIKE=' /etc/os-release
-        grep -q '^nonroot:x:65532:65532:' /etc/passwd
+        grep -q '^nonroot:!:65532:65532:' /etc/passwd
         test "$(stat -c %a /tmp)" = 1777
 
 update:
