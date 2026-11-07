@@ -44,14 +44,6 @@ pipeline:
 
   - name: Configure glibc
     runs: |
-      if [ "${{build.arch}}" = "aarch64" ]; then
-        # GCC's Alpine target does not support raw IFUNC attributes in these
-        # test-only helpers; use their generic implementations instead.
-        cp sysdeps/generic/support-address-diff.c \
-          sysdeps/aarch64/support-address-diff.c
-        cp sysdeps/generic/support-use-after-free.c \
-          sysdeps/aarch64/support-use-after-free.c
-      fi
       mkdir build
       cat > build/configparms <<'EOF'
       slibdir=/usr/lib
@@ -98,9 +90,6 @@ pipeline:
       case "${{build.arch}}" in
         x86_64)
           test -e "${{targets.destdir}}"/usr/lib/ld-linux-x86-64.so.2
-          ;;
-        aarch64)
-          test -e "${{targets.destdir}}"/usr/lib/ld-linux-aarch64.so.1
           ;;
         *)
           echo "unsupported architecture: ${{build.arch}}" >&2

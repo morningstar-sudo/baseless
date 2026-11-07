@@ -14,11 +14,6 @@ case "${machine}" in
     apko_sha256="dbd9e8f416903b2d896497c51f3217259d03ecb45c997254cedca5274e8671db"
     melange_sha256="90f76f3e5fcb90ddc4c932ad352982bda98d58001d2bcccb982dd7fb2e608a1f"
     ;;
-  aarch64|arm64)
-    release_arch="arm64"
-    apko_sha256="0b4fb47d3b0622e69407d1e5c2db6dc4eca174feced596f0101c62c845e9b0cd"
-    melange_sha256="aa5d221f92a248ba9aa490d1441c733417ad4c02f32fa9a13b8800acb42946f9"
-    ;;
   *)
     echo "unsupported host architecture: ${machine}" >&2
     exit 1

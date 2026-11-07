@@ -7,7 +7,7 @@ melange_bin="${MELANGE_BIN:-${repo_root}/.tools/bin/melange}"
 signing_key="${MELANGE_SIGNING_KEY:-${repo_root}/keys/baseless.rsa}"
 
 case "${arch}" in
-  x86_64|aarch64) ;;
+  x86_64) ;;
   *)
     echo "unsupported package architecture: ${arch}" >&2
     exit 1
