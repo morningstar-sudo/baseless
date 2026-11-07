@@ -27,7 +27,7 @@ env:
 
 jobs:
   build-packages:
-    runs-on: vm103-semi-system
+    runs-on: [self-hosted, Linux, X64, semi-system]
     environment: keys
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
           retention-days: 1
 
   build-scan-publish:
-    runs-on: vm103-semi-system
+    runs-on: [self-hosted, Linux, X64, semi-system]
     needs: build-packages
     steps:
       - uses: actions/checkout@v4
