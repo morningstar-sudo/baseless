@@ -27,16 +27,10 @@ env:
 
 jobs:
   build-packages:
-    runs-on: [self-hosted, Linux, X64, semi-system]
+    runs-on: ubuntu-24.04
     environment: keys
     steps:
-      - name: Restore workspace ownership
-        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
-
       - uses: actions/checkout@v4
-
-      - name: Allow runner user to access Docker
-        run: sudo chown "$(id -u)" /var/run/docker.sock
 
       - name: Install pinned Melange
         run: bash scripts/install-tools.sh "$PWD/.tools/bin"
@@ -66,16 +60,10 @@ jobs:
           retention-days: 1
 
   build-scan-publish:
-    runs-on: [self-hosted, Linux, X64, semi-system]
+    runs-on: ubuntu-24.04
     needs: build-packages
     steps:
-      - name: Restore workspace ownership
-        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
-
       - uses: actions/checkout@v4
-
-      - name: Allow runner user to access Docker
-        run: sudo chown "$(id -u)" /var/run/docker.sock
 
       - uses: docker/setup-buildx-action@v3
 
