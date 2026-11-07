@@ -28,6 +28,7 @@ recipes=(
 
 for recipe in "${recipes[@]}"; do
   "${melange_bin}" build "${repo_root}/melange/${recipe}" \
+    --source-dir "${repo_root}" \
     --arch "${arch}" \
     --runner docker \
     --signing-key "${signing_key}" \

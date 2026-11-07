@@ -1,10 +1,16 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/morningstar-sudo/baseless/security/glibc-2.44-045c5147",
+  "@id": "https://github.com/semi-system/baseless/security/glibc-2.44-r5-c5c6fc6f",
   "author": "https://github.com/morningstar-sudo/baseless",
-  "timestamp": "2026-10-24T00:00:00Z",
-  "version": 1,
+  "timestamp": "2026-11-07T00:00:00Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": { "@id": "CVE-2026-84243" },
+      "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],
+      "status": "fixed",
+      "status_notes": "Baseless 2.44-r5 backports upstream commit 03067f3c5e39aec5ec250a44bc1b395a1afd45e8 onto c5c6fc6f449dbc95e3a68cacd61852dc0a48e57c via melange/glibc-CVE-2026-84243.patch. This statement applies only to that patched Baseless build, not unpatched glibc 2.44."
+    },
     {
       "vulnerability": { "@id": "CVE-2026-0861" },
       "products": [{ "@id": "pkg:generic/gnu/glibc@2.44" }],

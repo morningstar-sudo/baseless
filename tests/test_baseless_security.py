@@ -18,14 +18,14 @@ class BaselessSecurityTests(unittest.TestCase):
 
     def test_apk_database_parser(self):
         packages = security.parse_apk_database(
-            "P:baseless-glibc\nV:2.44-r4\nA:x86_64\n\nP:foreign\nV:1-r0\n"
+            "P:baseless-glibc\nV:2.44-r5\nA:x86_64\n\nP:foreign\nV:1-r0\n"
         )
-        self.assertEqual(packages[0], security.Package("baseless-glibc", "2.44-r4", "x86_64"))
+        self.assertEqual(packages[0], security.Package("baseless-glibc", "2.44-r5", "x86_64"))
         self.assertEqual(len(packages), 2)
 
     def test_registered_inventory_passes(self):
         report = security.scan(
-            [security.Package("baseless-glibc", "2.44-r4", "x86_64")],
+            [security.Package("baseless-glibc", "2.44-r5", "x86_64")],
             self.distro,
             self.registry,
             [],
@@ -52,17 +52,23 @@ CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"
     def test_registry_provenance_is_valid(self):
         security.validate_registry_sources(self.registry, REPO_ROOT)
 
+    def test_unpatched_glibc_release_is_rejected(self):
+        for name in ("baseless-glibc", "baseless-glibc-dev", "baseless-glibc-utils", "baseless-glibc-gconv"):
+            with self.subTest(package=name):
+                with self.assertRaisesRegex(security.SecurityMetadataError, "unsupported EOL release"):
+                    security.validate_inventory([security.Package(name, "2.44-r4")], self.registry)
+
     def test_spdx_requires_baseless_purl_namespace(self):
         document = {
             "packages": [
                 {
                     "name": "baseless-glibc",
-                    "versionInfo": "2.44-r4",
+                    "versionInfo": "2.44-r5",
                     "externalRefs": [
                         {
                             "referenceType": "purl",
                             "referenceLocator": (
-                                "pkg:apk/baseless/baseless-glibc@2.44-r4"
+                                "pkg:apk/baseless/baseless-glibc@2.44-r5"
                                 "?arch=x86_64&distro=baseless"
                             ),
                         }
@@ -75,10 +81,10 @@ CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"
             path.write_text(json.dumps(document), encoding="utf-8")
             self.assertEqual(
                 security.parse_spdx(path),
-                [security.Package("baseless-glibc", "2.44-r4", "x86_64")],
+                [security.Package("baseless-glibc", "2.44-r5", "x86_64")],
             )
             document["packages"][0]["externalRefs"][0]["referenceLocator"] = (
-                "pkg:apk/unknown/baseless-glibc@2.44-r4?arch=x86_64"
+                "pkg:apk/unknown/baseless-glibc@2.44-r5?arch=x86_64"
             )
             path.write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaisesRegex(security.SecurityMetadataError, "Baseless APK namespace"):
@@ -124,12 +130,12 @@ CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"
             "affected": [
                 {
                     "package": {"ecosystem": "Baseless", "name": "baseless-glibc"},
-                    "versions": ["2.44-r4"],
+                    "versions": ["2.44-r5"],
                 }
             ],
         }
         findings = security.find_vulnerabilities(
-            [security.Package("baseless-glibc", "2.44-r4")], [advisory]
+            [security.Package("baseless-glibc", "2.44-r5")], [advisory]
         )
         self.assertEqual(findings[0]["id"], "BLSA-TEST-0001")
 
@@ -151,7 +157,7 @@ CPE_NAME="cpe:2.3:o:morningstar-sudo:baseless:2026.10:*:*:*:*:*:*:*"
                                     "name": "baseless-glibc",
                                     "purl": "pkg:apk/baseless/baseless-glibc",
                                 },
-                                "versions": ["2.44-r4"],
+                                "versions": ["2.44-r5"],
                                 "ranges": [{"type": "ECOSYSTEM", "events": []}],
                             }
                         ],
